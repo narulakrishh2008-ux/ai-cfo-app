@@ -150,7 +150,7 @@ export default function Home() {
 
   if (loading) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <p className="text-green-400 text-xl">Loading AI CFO...</p>
+      <p className="text-green-400 text-xl">Loading Finlytix...</p>
     </div>
   );
 
@@ -163,8 +163,8 @@ export default function Home() {
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
       <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col min-h-screen">
         <div className="p-6 border-b border-gray-800">
-          <h1 className="text-xl font-bold text-green-400">💼 AI CFO</h1>
-          <p className="text-xs text-gray-400 mt-1">Smart Finance Dashboard</p>
+          <h1 className="text-xl font-bold text-green-400">💼 Finlytix</h1>
+          <p className="text-xs text-gray-400 mt-1">AI CFO for Indian Businesses</p>
         </div>
         <nav className="overflow-y-auto p-4 space-y-2 flex-1">
           {[
@@ -173,7 +173,7 @@ export default function Home() {
             { id: "sales", icon: "🧾", label: "Sales & Payments" },
             { id: "expenses", icon: "💰", label: "Expenses & Profit" },
             { id: "accounts", icon: "📊", label: "Accounts & Tax" },
-            { id: "ai", icon: "🤖", label: "AI CFO Chat" },
+            { id: "ai", icon: "🤖", label: "Finlytix Chat" },
             { id: "invite", icon: "📨", label: "Invite My CA" },
           ].map(item => (
             <button key={item.id} onClick={() => { setActivePage(item.id); setSelectedClient(null); }}
@@ -420,7 +420,7 @@ export default function Home() {
 // AI CHAT COMPONENT
 function AIChat({ userEmail, userName, clients, totalReceivables, totalBusiness }: any) {
   const [messages, setMessages] = useState<any[]>([
-    { role: "assistant", content: `Hello ${userName?.split(" ")[0] || "there"}! 👋 I'm your AI CFO. I can help you with:\n\n💰 Financial analysis\n🧾 Tax saving tips\n📊 Business insights\n\nWhat would you like to know?` }
+    { role: "assistant", content: `Hello ${userName?.split(" ")[0] || "there"}! 👋 I'm your Finlytix. I can help you with:\n\n💰 Financial analysis\n🧾 Tax saving tips\n📊 Business insights\n\nWhat would you like to know?` }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -467,7 +467,7 @@ function AIChat({ userEmail, userName, clients, totalReceivables, totalBusiness 
 
     // Build context about the business
     const businessContext = `
-You are an AI CFO assistant for an Indian small business. Here is the business's financial data:
+You are an Finlytix assistant for an Indian small business. Here is the business's financial data:
 
 
 BUSINESS OWNER: ${userName}
@@ -550,7 +550,7 @@ Keep responses under 200 words. Use bullet points and emojis for readability.
 
   return (
     <div className="p-8 flex flex-col h-full bg-gray-950 min-h-screen text-white">
-      <h2 className="text-2xl font-bold mb-2">🤖 AI CFO Chat</h2>
+      <h2 className="text-2xl font-bold mb-2">🤖 Finlytix Chat</h2>
       <p className="text-gray-400 mb-6">Ask anything about your finances — powered by real data</p>
 
 
@@ -606,7 +606,7 @@ Keep responses under 200 words. Use bullet points and emojis for readability.
 
         <div className="p-4 border-t border-gray-800 flex gap-3">
           <input
-            placeholder="Ask your AI CFO anything..."
+            placeholder="Ask your Finlytix anything..."
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && sendMessage()}

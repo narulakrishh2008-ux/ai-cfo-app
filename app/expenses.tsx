@@ -133,7 +133,7 @@ export default function Expenses() {
 
       {/* AI Insight Box */}
       <div className="mt-6 bg-gray-900 rounded-2xl p-6 border border-green-900">
-        <h3 className="font-semibold text-green-400 mb-3">🤖 AI CFO Insight</h3>
+        <h3 className="font-semibold text-green-400 mb-3">🤖 Finlytix Insight</h3>
         <div className="space-y-2 text-sm text-gray-300">
           {items.length > 0 && (() => {
             const best = [...items].sort((a, b) => ((b.price - b.cost) / b.price) - ((a.price - a.cost) / a.price))[0];

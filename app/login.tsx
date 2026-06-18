@@ -88,8 +88,8 @@ export default function Login({ onLogin }: { onLogin: (user: any) => void }) {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-green-400">💼 AI CFO</h1>
-          <p className="text-gray-400 mt-2">Smart Finance Dashboard for Indian Businesses</p>
+          <h1 className="text-4xl font-bold text-green-400">💼 Finlytix</h1>
+          <p className="text-gray-400 mt-2">AI CFO for Indian Businesses for Indian Businesses</p>
         </div>
 
         {/* Card */}

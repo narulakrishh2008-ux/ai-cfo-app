@@ -308,7 +308,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                   <th className="text-right p-4">Total</th>
                   <th className="text-right p-4">Received</th>
                   <th className="text-right p-4">Balance</th>
-                  <th className="text-center p-4">In Accounts</th>
+                  <th className="text-center p-2">In A/C</th>
                   <th className="text-center p-4">Status</th>
                   <th className="text-center p-4">Actions</th>
                 </tr>
@@ -325,11 +325,11 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                     <td className="p-4 text-right font-semibold">₹{Number(sale.total || 0).toLocaleString()}</td>
                     <td className="p-4 text-right text-green-400">₹{Number(sale.paid || 0).toLocaleString()}</td>
                     <td className="p-4 text-right text-red-400">₹{(Number(sale.total || 0) - Number(sale.paid || 0)).toLocaleString()}</td>
-                    <td className="p-4 text-center">
-                      {sale.include_in_accounts !== false
-                        ? <span className="text-xs bg-green-900 text-green-400 px-2 py-1 rounded-full">✅ Yes</span>
-                        : <span className="text-xs bg-gray-800 text-gray-500 px-2 py-1 rounded-full">⛔ No</span>}
-                    </td>
+                    <td className="p-2 text-center">
+  {sale.include_in_accounts !== false
+    ? <span className="text-xs text-green-400">✅</span>
+    : <span className="text-xs text-gray-500">⛔</span>}
+</td>
                     <td className="p-4 text-center">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${sale.status === "paid" ? "bg-green-900 text-green-400" : sale.status === "partial" ? "bg-yellow-900 text-yellow-400" : "bg-red-900 text-red-400"}`}>
                         {sale.status === "paid" ? "✅ Paid" : sale.status === "partial" ? "🟡 Partial" : "🔴 Unpaid"}
