@@ -23,10 +23,10 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
   const [loading, setLoading] = useState(true);
 
   const [saleForm, setSaleForm] = useState({
-    clientName: "", product: "", qty: "", price: "", cost: "", gstRate: "18", date: "", clientGst: ""
+    clientName: "", product: "", qty: "", price: "", cost: "", gstRate: "18", date: "", clientGst: "", includeInAccounts: true
   });
   const [editForm, setEditForm] = useState({
-    clientName: "", product: "", qty: "", price: "", cost: "", gstRate: "18", date: "", clientGst: ""
+    clientName: "", product: "", qty: "", price: "", cost: "", gstRate: "18", date: "", clientGst: "", includeInAccounts: true
   });
   const [paymentForm, setPaymentForm] = useState({ amount: "", note: "", date: "" });
 
@@ -116,7 +116,8 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
       date: saleForm.date || new Date().toLocaleDateString("en-IN"),
       status: "unpaid",
       owner_email: userEmail,
-      client_gst: saleForm.clientGst || null
+      client_gst: saleForm.clientGst || null,
+      include_in_accounts: saleForm.includeInAccounts
     };
 
     const { error } = await supabase.from("sales").insert([newSale]);
@@ -143,7 +144,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
       if (onClientsChange) onClientsChange();
     }
 
-    setSaleForm({ clientName: "", product: "", qty: "", price: "", cost: "", gstRate: "18", date: "", clientGst: "" });
+    setSaleForm({ clientName: "", product: "", qty: "", price: "", cost: "", gstRate: "18", date: "", clientGst: "", includeInAccounts: true });
     setShowSaleForm(false);
     setSaving(false);
   };
@@ -158,7 +159,8 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
       cost: String(sale.cost || ""),
       gstRate: String(sale.gst_rate || "18"),
       date: sale.date || "",
-      clientGst: sale.client_gst || ""
+      clientGst: sale.client_gst || "",
+      includeInAccounts: sale.include_in_accounts !== false
     });
     setShowEditForm(true);
   };
@@ -186,7 +188,8 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
       cgst: gst.cgst,
       sgst: gst.sgst,
       date: editForm.date,
-      client_gst: editForm.clientGst || null
+      client_gst: editForm.clientGst || null,
+      include_in_accounts: editForm.includeInAccounts
     }).eq("id", editingSale.id);
 
     await updateClientTotals(editForm.clientName);
@@ -224,10 +227,11 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
     setSaving(false);
   };
 
+  const accountSales = sales.filter(s => s.include_in_accounts !== false);
   const totalBilled = sales.reduce((a, s) => a + Number(s.total || 0), 0);
   const totalReceived = sales.reduce((a, s) => a + Number(s.paid || 0), 0);
   const totalPending = totalBilled - totalReceived;
-  const totalGST = sales.reduce((a, s) => a + Number(s.gst_amount || 0), 0);
+  const totalGST = accountSales.reduce((a, s) => a + Number(s.gst_amount || 0), 0);
 
   const clientLedger = sales.reduce((acc: any, sale) => {
     const name = sale.client_name;
@@ -270,7 +274,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
           <p className="text-2xl font-bold text-red-400 mt-1">₹{totalPending.toLocaleString()}</p>
         </div>
         <div className="bg-gray-900 rounded-2xl p-5 border border-yellow-900">
-          <p className="text-gray-400 text-sm">Total GST Collected</p>
+          <p className="text-gray-400 text-sm">GST (Accounts only)</p>
           <p className="text-2xl font-bold text-yellow-400 mt-1">₹{totalGST.toFixed(0)}</p>
         </div>
       </div>
@@ -304,13 +308,14 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                   <th className="text-right p-4">Total</th>
                   <th className="text-right p-4">Received</th>
                   <th className="text-right p-4">Balance</th>
+                  <th className="text-center p-4">In Accounts</th>
                   <th className="text-center p-4">Status</th>
                   <th className="text-center p-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {sales.map(sale => (
-                  <tr key={sale.id} className="border-b border-gray-800 hover:bg-gray-800">
+                  <tr key={sale.id} className={`border-b border-gray-800 hover:bg-gray-800 ${sale.include_in_accounts === false ? "opacity-50" : ""}`}>
                     <td className="p-4 font-medium">{sale.client_name}</td>
                     <td className="p-4 text-gray-500 text-xs">{sale.client_gst || "—"}</td>
                     <td className="p-4 text-gray-300">{sale.product}</td>
@@ -321,17 +326,20 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                     <td className="p-4 text-right text-green-400">₹{Number(sale.paid || 0).toLocaleString()}</td>
                     <td className="p-4 text-right text-red-400">₹{(Number(sale.total || 0) - Number(sale.paid || 0)).toLocaleString()}</td>
                     <td className="p-4 text-center">
+                      {sale.include_in_accounts !== false
+                        ? <span className="text-xs bg-green-900 text-green-400 px-2 py-1 rounded-full">✅ Yes</span>
+                        : <span className="text-xs bg-gray-800 text-gray-500 px-2 py-1 rounded-full">⛔ No</span>}
+                    </td>
+                    <td className="p-4 text-center">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${sale.status === "paid" ? "bg-green-900 text-green-400" : sale.status === "partial" ? "bg-yellow-900 text-yellow-400" : "bg-red-900 text-red-400"}`}>
                         {sale.status === "paid" ? "✅ Paid" : sale.status === "partial" ? "🟡 Partial" : "🔴 Unpaid"}
                       </span>
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex gap-2 justify-center">
-                        <button onClick={() => openEditForm(sale)}
-                          className="text-xs bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded-lg">✏️ Edit</button>
+                        <button onClick={() => openEditForm(sale)} className="text-xs bg-blue-700 hover:bg-blue-600 px-3 py-1 rounded-lg">✏️ Edit</button>
                         {sale.status !== "paid" && (
-                          <button onClick={() => { setSelectedSale(sale); setShowPaymentForm(true); }}
-                            className="text-xs bg-green-700 hover:bg-green-600 px-3 py-1 rounded-lg">+ Pay</button>
+                          <button onClick={() => { setSelectedSale(sale); setShowPaymentForm(true); }} className="text-xs bg-green-700 hover:bg-green-600 px-3 py-1 rounded-lg">+ Pay</button>
                         )}
                       </div>
                     </td>
@@ -363,6 +371,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                   <tr className="text-gray-400 text-xs border-b border-gray-800">
                     <th className="text-left p-3 pl-6">Date</th>
                     <th className="text-left p-3">Product</th>
+                    <th className="text-center p-3">In Accounts</th>
                     <th className="text-right p-3">GST</th>
                     <th className="text-right p-3">Total</th>
                     <th className="text-right p-3">Paid</th>
@@ -371,9 +380,10 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                 </thead>
                 <tbody>
                   {data.sales.map((sale: any) => (
-                    <tr key={sale.id} className="border-b border-gray-800 last:border-0">
+                    <tr key={sale.id} className={`border-b border-gray-800 last:border-0 ${sale.include_in_accounts === false ? "opacity-50" : ""}`}>
                       <td className="p-3 pl-6 text-sm text-gray-400">{sale.date}</td>
                       <td className="p-3 text-sm">{sale.product} × {sale.qty}</td>
+                      <td className="p-3 text-center text-xs">{sale.include_in_accounts !== false ? "✅" : "⛔"}</td>
                       <td className="p-3 text-right text-sm text-yellow-400">₹{Number(sale.gst_amount || 0).toFixed(0)}</td>
                       <td className="p-3 text-right text-sm">₹{Number(sale.total || 0).toLocaleString()}</td>
                       <td className="p-3 text-right text-sm text-green-400">₹{Number(sale.paid || 0).toLocaleString()}</td>
@@ -384,6 +394,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                     <tr key={`p-${p.id}`} className="bg-green-950 border-b border-gray-800 last:border-0">
                       <td className="p-3 pl-6 text-sm text-gray-400">{p.date}</td>
                       <td className="p-3 text-sm text-green-400">💳 Payment — {p.note}</td>
+                      <td className="p-3 text-center text-xs">—</td>
                       <td className="p-3 text-right text-sm">—</td>
                       <td className="p-3 text-right text-sm">—</td>
                       <td className="p-3 text-right text-sm text-green-400">+₹{Number(p.amount).toLocaleString()}</td>
@@ -428,6 +439,9 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
 
       {activeTab === "gst" && (
         <div className="space-y-6">
+          <div className="bg-yellow-900 border border-yellow-700 rounded-xl p-4 text-yellow-300 text-sm">
+            ⚠️ GST summary only includes sales marked as <strong>"Include in Accounts"</strong>. Excluded sales are not shown here.
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-gray-900 rounded-2xl p-6 border border-yellow-900">
               <p className="text-gray-400 text-sm">Total GST Collected</p>
@@ -444,7 +458,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
           </div>
           <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
             <div className="p-6 border-b border-gray-800">
-              <h3 className="font-bold text-lg">🧾 GST Report — Sale wise</h3>
+              <h3 className="font-bold text-lg">🧾 GST Report — Accounts only</h3>
             </div>
             <table className="w-full">
               <thead>
@@ -462,7 +476,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                 </tr>
               </thead>
               <tbody>
-                {sales.map(sale => (
+                {accountSales.map(sale => (
                   <tr key={sale.id} className="border-b border-gray-800 hover:bg-gray-800">
                     <td className="p-4 text-gray-400 text-sm">{sale.date}</td>
                     <td className="p-4 font-medium text-sm">{sale.client_name}</td>
@@ -480,12 +494,12 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
               <tfoot>
                 <tr className="border-t border-gray-700 bg-gray-800 font-bold">
                   <td colSpan={4} className="p-4">Total</td>
-                  <td className="p-4 text-right">₹{sales.reduce((a, s) => a + Number(s.base_amount || 0), 0).toFixed(2)}</td>
+                  <td className="p-4 text-right">₹{accountSales.reduce((a, s) => a + Number(s.base_amount || 0), 0).toFixed(2)}</td>
                   <td className="p-4"></td>
                   <td className="p-4 text-right">₹{(totalGST / 2).toFixed(2)}</td>
                   <td className="p-4 text-right">₹{(totalGST / 2).toFixed(2)}</td>
                   <td className="p-4 text-right text-yellow-400">₹{totalGST.toFixed(2)}</td>
-                  <td className="p-4 text-right">₹{totalBilled.toFixed(2)}</td>
+                  <td className="p-4 text-right">₹{accountSales.reduce((a, s) => a + Number(s.total || 0), 0).toFixed(2)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -501,53 +515,45 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Client Name *</label>
-                <input placeholder="e.g. Ashish, Rahul Enterprises"
-                  value={saleForm.clientName}
+                <input placeholder="e.g. Ashish, Rahul Enterprises" value={saleForm.clientName}
                   onChange={e => setSaleForm(f => ({...f, clientName: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Client GST Number <span className="text-gray-600">(Optional)</span></label>
-                <input placeholder="e.g. 27AAPFU0939F1ZV"
-                  value={saleForm.clientGst}
+                <input placeholder="e.g. 27AAPFU0939F1ZV" value={saleForm.clientGst}
                   onChange={e => setSaleForm(f => ({...f, clientGst: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
-                <p className="text-xs text-gray-600 mt-1">Add for B2B invoices — skip for regular customers</p>
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Product / Service *</label>
-                <input placeholder="e.g. Kurta, Tour Package, Cake"
-                  value={saleForm.product}
+                <input placeholder="e.g. Kurta, Tour Package, Cake" value={saleForm.product}
                   onChange={e => setSaleForm(f => ({...f, product: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Quantity *</label>
-                  <input placeholder="e.g. 10" type="number"
-                    value={saleForm.qty}
+                  <input placeholder="e.g. 10" type="number" value={saleForm.qty}
                     onChange={e => setSaleForm(f => ({...f, qty: e.target.value}))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Selling Price (₹) *</label>
-                  <input placeholder="e.g. 1500" type="number"
-                    value={saleForm.price}
+                  <input placeholder="e.g. 1500" type="number" value={saleForm.price}
                     onChange={e => setSaleForm(f => ({...f, price: e.target.value}))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
                 </div>
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Cost to Make/Deliver (₹)</label>
-                <input placeholder="e.g. 600" type="number"
-                  value={saleForm.cost}
+                <input placeholder="e.g. 600" type="number" value={saleForm.cost}
                   onChange={e => setSaleForm(f => ({...f, cost: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">GST Rate *</label>
-                <select value={saleForm.gstRate}
-                  onChange={e => setSaleForm(f => ({...f, gstRate: e.target.value}))}
+                <select value={saleForm.gstRate} onChange={e => setSaleForm(f => ({...f, gstRate: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white">
                   {GST_RATES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
@@ -555,45 +561,36 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
               {previewGST && (
                 <div className="bg-gray-800 rounded-xl px-4 py-3 space-y-2">
                   <p className="text-xs text-gray-400 font-semibold uppercase">Invoice Preview</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Base Amount</span>
-                    <span>₹{previewGST.baseAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">CGST ({Number(saleForm.gstRate)/2}%)</span>
-                    <span className="text-yellow-400">₹{previewGST.cgst.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">SGST ({Number(saleForm.gstRate)/2}%)</span>
-                    <span className="text-yellow-400">₹{previewGST.sgst.toFixed(2)}</span>
-                  </div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-400">Base Amount</span><span>₹{previewGST.baseAmount.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-400">CGST ({Number(saleForm.gstRate)/2}%)</span><span className="text-yellow-400">₹{previewGST.cgst.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-400">SGST ({Number(saleForm.gstRate)/2}%)</span><span className="text-yellow-400">₹{previewGST.sgst.toFixed(2)}</span></div>
                   {saleForm.cost && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Your Profit</span>
-                      <span className="text-green-400">₹{(previewGST.baseAmount - (Number(saleForm.cost) * Number(saleForm.qty))).toFixed(2)}</span>
-                    </div>
+                    <div className="flex justify-between text-sm"><span className="text-gray-400">Your Profit</span><span className="text-green-400">₹{(previewGST.baseAmount - (Number(saleForm.cost) * Number(saleForm.qty))).toFixed(2)}</span></div>
                   )}
-                  <div className="flex justify-between text-sm font-bold border-t border-gray-700 pt-2">
-                    <span>Total Invoice</span>
-                    <span className="text-white">₹{previewGST.totalWithGST.toFixed(2)}</span>
-                  </div>
+                  <div className="flex justify-between text-sm font-bold border-t border-gray-700 pt-2"><span>Total Invoice</span><span>₹{previewGST.totalWithGST.toFixed(2)}</span></div>
                 </div>
               )}
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Date</label>
-                <input placeholder="e.g. 12 May 2026"
-                  value={saleForm.date}
+                <input placeholder="e.g. 12 May 2026" value={saleForm.date}
                   onChange={e => setSaleForm(f => ({...f, date: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
+              <div className="flex items-center gap-3 bg-gray-800 rounded-xl px-4 py-3 border border-gray-700">
+                <input type="checkbox" id="includeInAccounts" checked={saleForm.includeInAccounts}
+                  onChange={e => setSaleForm(f => ({...f, includeInAccounts: e.target.checked}))}
+                  className="w-5 h-5 accent-green-500 cursor-pointer" />
+                <div>
+                  <label htmlFor="includeInAccounts" className="text-sm font-semibold text-white cursor-pointer">Include in Accounts & Tax</label>
+                  <p className="text-xs text-gray-500 mt-0.5">Uncheck to hide from GST reports, P&L and tax calculations</p>
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={addSale} disabled={saving}
-                className="flex-1 bg-green-600 hover:bg-green-500 py-3 rounded-xl font-semibold disabled:opacity-50">
+              <button onClick={addSale} disabled={saving} className="flex-1 bg-green-600 hover:bg-green-500 py-3 rounded-xl font-semibold disabled:opacity-50">
                 {saving ? "Saving..." : "Save Sale ✅"}
               </button>
-              <button onClick={() => setShowSaleForm(false)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-xl">Cancel</button>
+              <button onClick={() => setShowSaleForm(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-xl">Cancel</button>
             </div>
           </div>
         </div>
@@ -608,52 +605,45 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Client Name *</label>
-                <input placeholder="e.g. Ashish"
-                  value={editForm.clientName}
+                <input placeholder="e.g. Ashish" value={editForm.clientName}
                   onChange={e => setEditForm(f => ({...f, clientName: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Client GST Number <span className="text-gray-600">(Optional)</span></label>
-                <input placeholder="e.g. 27AAPFU0939F1ZV"
-                  value={editForm.clientGst}
+                <input placeholder="e.g. 27AAPFU0939F1ZV" value={editForm.clientGst}
                   onChange={e => setEditForm(f => ({...f, clientGst: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Product / Service *</label>
-                <input placeholder="e.g. Kurta"
-                  value={editForm.product}
+                <input placeholder="e.g. Kurta" value={editForm.product}
                   onChange={e => setEditForm(f => ({...f, product: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Quantity *</label>
-                  <input placeholder="e.g. 10" type="number"
-                    value={editForm.qty}
+                  <input placeholder="e.g. 10" type="number" value={editForm.qty}
                     onChange={e => setEditForm(f => ({...f, qty: e.target.value}))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 mb-1 block">Selling Price (₹) *</label>
-                  <input placeholder="e.g. 1500" type="number"
-                    value={editForm.price}
+                  <input placeholder="e.g. 1500" type="number" value={editForm.price}
                     onChange={e => setEditForm(f => ({...f, price: e.target.value}))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
                 </div>
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Cost to Make/Deliver (₹)</label>
-                <input placeholder="e.g. 600" type="number"
-                  value={editForm.cost}
+                <input placeholder="e.g. 600" type="number" value={editForm.cost}
                   onChange={e => setEditForm(f => ({...f, cost: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">GST Rate *</label>
-                <select value={editForm.gstRate}
-                  onChange={e => setEditForm(f => ({...f, gstRate: e.target.value}))}
+                <select value={editForm.gstRate} onChange={e => setEditForm(f => ({...f, gstRate: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white">
                   {GST_RATES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
@@ -661,39 +651,33 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
               {editPreviewGST && (
                 <div className="bg-gray-800 rounded-xl px-4 py-3 space-y-2">
                   <p className="text-xs text-gray-400 font-semibold uppercase">Updated Invoice Preview</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Base Amount</span>
-                    <span>₹{editPreviewGST.baseAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">CGST ({Number(editForm.gstRate)/2}%)</span>
-                    <span className="text-yellow-400">₹{editPreviewGST.cgst.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">SGST ({Number(editForm.gstRate)/2}%)</span>
-                    <span className="text-yellow-400">₹{editPreviewGST.sgst.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-bold border-t border-gray-700 pt-2">
-                    <span>Total Invoice</span>
-                    <span className="text-white">₹{editPreviewGST.totalWithGST.toFixed(2)}</span>
-                  </div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-400">Base Amount</span><span>₹{editPreviewGST.baseAmount.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-400">CGST ({Number(editForm.gstRate)/2}%)</span><span className="text-yellow-400">₹{editPreviewGST.cgst.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-400">SGST ({Number(editForm.gstRate)/2}%)</span><span className="text-yellow-400">₹{editPreviewGST.sgst.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-sm font-bold border-t border-gray-700 pt-2"><span>Total Invoice</span><span>₹{editPreviewGST.totalWithGST.toFixed(2)}</span></div>
                 </div>
               )}
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Date</label>
-                <input placeholder="e.g. 12 May 2026"
-                  value={editForm.date}
+                <input placeholder="e.g. 12 May 2026" value={editForm.date}
                   onChange={e => setEditForm(f => ({...f, date: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
+              <div className="flex items-center gap-3 bg-gray-800 rounded-xl px-4 py-3 border border-gray-700">
+                <input type="checkbox" id="editIncludeInAccounts" checked={editForm.includeInAccounts}
+                  onChange={e => setEditForm(f => ({...f, includeInAccounts: e.target.checked}))}
+                  className="w-5 h-5 accent-green-500 cursor-pointer" />
+                <div>
+                  <label htmlFor="editIncludeInAccounts" className="text-sm font-semibold text-white cursor-pointer">Include in Accounts & Tax</label>
+                  <p className="text-xs text-gray-500 mt-0.5">Uncheck to hide from GST reports, P&L and tax calculations</p>
+                </div>
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={saveSaleEdit} disabled={saving}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-semibold disabled:opacity-50">
+              <button onClick={saveSaleEdit} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-semibold disabled:opacity-50">
                 {saving ? "Saving..." : "Save Changes ✅"}
               </button>
-              <button onClick={() => { setShowEditForm(false); setEditingSale(null); }}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-xl">Cancel</button>
+              <button onClick={() => { setShowEditForm(false); setEditingSale(null); }} className="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-xl">Cancel</button>
             </div>
           </div>
         </div>
@@ -706,49 +690,35 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
             <h3 className="text-xl font-bold mb-2">💳 Add Payment</h3>
             <p className="text-gray-400 mb-6">Client: <span className="text-white font-semibold">{selectedSale.client_name}</span></p>
             <div className="bg-gray-800 rounded-xl p-4 mb-6">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-400">Total Invoice</span>
-                <span className="font-semibold">₹{Number(selectedSale.total).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-400">Already Paid</span>
-                <span className="text-green-400">₹{Number(selectedSale.paid).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm font-bold border-t border-gray-700 pt-2 mt-2">
-                <span className="text-gray-400">Balance Due</span>
-                <span className="text-red-400">₹{(Number(selectedSale.total) - Number(selectedSale.paid)).toLocaleString()}</span>
-              </div>
+              <div className="flex justify-between text-sm mb-2"><span className="text-gray-400">Total Invoice</span><span className="font-semibold">₹{Number(selectedSale.total).toLocaleString()}</span></div>
+              <div className="flex justify-between text-sm mb-2"><span className="text-gray-400">Already Paid</span><span className="text-green-400">₹{Number(selectedSale.paid).toLocaleString()}</span></div>
+              <div className="flex justify-between text-sm font-bold border-t border-gray-700 pt-2 mt-2"><span className="text-gray-400">Balance Due</span><span className="text-red-400">₹{(Number(selectedSale.total) - Number(selectedSale.paid)).toLocaleString()}</span></div>
             </div>
             <div className="space-y-4">
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Amount Received (₹) *</label>
-                <input placeholder="e.g. 5000" type="number"
-                  value={paymentForm.amount}
+                <input placeholder="e.g. 5000" type="number" value={paymentForm.amount}
                   onChange={e => setPaymentForm(f => ({...f, amount: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Note</label>
-                <input placeholder="e.g. Advance, Final payment"
-                  value={paymentForm.note}
+                <input placeholder="e.g. Advance, Final payment" value={paymentForm.note}
                   onChange={e => setPaymentForm(f => ({...f, note: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Date</label>
-                <input placeholder="e.g. 12 May 2026"
-                  value={paymentForm.date}
+                <input placeholder="e.g. 12 May 2026" value={paymentForm.date}
                   onChange={e => setPaymentForm(f => ({...f, date: e.target.value}))}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={addPayment} disabled={saving}
-                className="flex-1 bg-green-600 hover:bg-green-500 py-3 rounded-xl font-semibold disabled:opacity-50">
+              <button onClick={addPayment} disabled={saving} className="flex-1 bg-green-600 hover:bg-green-500 py-3 rounded-xl font-semibold disabled:opacity-50">
                 {saving ? "Saving..." : "Save Payment ✅"}
               </button>
-              <button onClick={() => { setShowPaymentForm(false); setSelectedSale(null); }}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-xl">Cancel</button>
+              <button onClick={() => { setShowPaymentForm(false); setSelectedSale(null); }} className="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-xl">Cancel</button>
             </div>
           </div>
         </div>
