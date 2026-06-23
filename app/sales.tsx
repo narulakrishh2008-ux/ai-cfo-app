@@ -300,7 +300,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
               <thead>
                 <tr className="border-b border-gray-800 text-gray-400 text-sm">
                   <th className="text-left p-4">Client</th>
-                  <th className="text-left p-4">GST No.</th>
+                  
                   <th className="text-left p-4">Product</th>
                   <th className="text-right p-4">Qty</th>
                   <th className="text-right p-4">Base Amt</th>
@@ -317,7 +317,7 @@ export default function Sales({ clients, onClientsChange, userEmail }: { clients
                 {sales.map(sale => (
                   <tr key={sale.id} className={`border-b border-gray-800 hover:bg-gray-800 ${sale.include_in_accounts === false ? "opacity-50" : ""}`}>
                     <td className="p-4 font-medium">{sale.client_name}</td>
-                    <td className="p-4 text-gray-500 text-xs">{sale.client_gst || "—"}</td>
+                    
                     <td className="p-4 text-gray-300">{sale.product}</td>
                     <td className="p-4 text-right">{sale.qty}</td>
                     <td className="p-4 text-right">₹{Number(sale.base_amount || 0).toFixed(0)}</td>

@@ -216,7 +216,7 @@ export default function Home() {
               </div>
             </div>
             <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-              <h3 className="font-semibold mb-4">⚠️ Overdue Alerts</h3>
+              <h3 className="font-semibold mb-4">⚠️ Pending & Overdue Alerts</h3>
               {clients.filter(c => c.status === "overdue").length === 0 ? (
                 <p className="text-gray-400">No overdue clients 🎉</p>
               ) : clients.filter(c => c.status === "overdue").map(c => (
